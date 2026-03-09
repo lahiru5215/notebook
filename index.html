@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Notes Pro | Cloud Sync Fixed</title>
+    <title>Smart Notes Pro | Cloud Sync</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -128,44 +128,36 @@
 </div>
 
 <script>
-    // *** උඹේ Apps Script URL එක මෙතනට දාපන් ***
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfklU-dD8Lq4QaR_-jB9MdAT9gP_dInauEkK-xOBNU/dev";
+    // *** උඹේ අලුත් Apps Script URL එක මෙතනට දාපන් ***
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyIs3j4Tro52nmSARTL807o7i7j-2JCmLCMRXuv2g_zR8C_x0LNZkoIAskHqIlW2IGQg/exec";
 
     window.onload = refreshDisplay;
 
-    function uploadToDrive(input) {
-        if (!input.files[0]) return;
-        const file = input.files[0];
-        const pWrapper = document.getElementById('progressWrapper');
-        const pBar = document.getElementById('progressBar');
-        const label = document.getElementById('uploadLabel');
+    function refreshDisplay() {
+        const container = document.getElementById("tableBody");
+        container.innerHTML = "<tr><td colspan='3' style='text-align:center; padding:20px;'>Syncing with Cloud...</td></tr>";
 
-        pWrapper.style.display = 'block';
-        pBar.style.width = '40%';
-        label.innerText = "Uploading...";
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const base64 = e.target.result.split(',')[1];
-            fetch(SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify({ base64: base64, type: file.type, name: file.name })
-            })
-            .then(res => res.json())
-            .then(res => {
-                if(res.status === "success") {
-                    pBar.style.width = '100%';
-                    label.innerText = "✅ Done!";
-                    const fileTag = `[FILE]${file.name}|${res.downloadUrl}`;
-                    document.getElementById('noteInput').value += (document.getElementById('noteInput').value ? "\n" : "") + fileTag;
-                } else {
-                    alert("Error: " + (res.error || "Unknown error"));
-                }
-                setTimeout(() => { pWrapper.style.display = 'none'; label.innerText = "No file selected"; }, 2000);
-            })
-            .catch(err => alert("Upload failed. Check Script URL & Permissions."));
-        };
-        reader.readAsDataURL(file);
+        fetch(SCRIPT_URL)
+        .then(res => res.json())
+        .then(db => {
+            document.getElementById("entryCount").innerText = `${db.length} Entries`;
+            container.innerHTML = "";
+            if(db.length === 0) {
+                container.innerHTML = "<tr><td colspan='3' style='text-align:center; padding:20px;'>සටහන් කිසිවක් නැත.</td></tr>";
+                return;
+            }
+            db.slice().reverse().forEach((note) => {
+                container.innerHTML += `
+                    <tr class="note-row">
+                        <td>${note.stamp}</td>
+                        <td>${formatContent(note.content)}</td>
+                        <td class="hide-pdf"><button class="btn-delete" onclick="alert('Sheet එකෙන් මකන්න.')">Remove</button></td>
+                    </tr>`;
+            });
+        })
+        .catch(err => {
+            container.innerHTML = "<tr><td colspan='3' style='text-align:center; color:red; padding:20px;'>දත්ත Load වීමේ දෝෂයකි! URL එක පරීක්ෂා කරන්න.</td></tr>";
+        });
     }
 
     function saveNote() {
@@ -173,85 +165,53 @@
         const btn = document.getElementById("addBtn");
         if (!input.value.trim()) return;
 
+        btn.disabled = true;
+        btn.innerText = "Saving...";
+
         const noteData = {
             action: "saveNote",
             stamp: new Date().toLocaleDateString('en-GB') + "<br><small>" + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + "</small>",
             content: input.value
         };
 
-        btn.disabled = true;
-        btn.innerText = "Saving...";
-
-        fetch(SCRIPT_URL, {
-            method: "POST",
-            body: JSON.stringify(noteData)
-        })
-        .then(res => res.json())
-        .then(res => {
-            if(res.status === "success") {
-                input.value = "";
-                refreshDisplay();
-            }
+        fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(noteData) })
+        .then(() => {
+            input.value = "";
             btn.disabled = false;
-            btn.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Add Note`;
+            btn.innerHTML = "Add Note";
+            refreshDisplay();
         })
-        .catch(err => {
-            alert("Save කරන්න බැරි වුණා!");
-            btn.disabled = false;
-        });
+        .catch(() => { alert("Error!"); btn.disabled = false; });
     }
 
-    function refreshDisplay() {
-        const container = document.getElementById("tableBody");
-        container.innerHTML = "<tr><td colspan='3' style='text-align:center; padding:20px;'>Cloud එකෙන් දත්ත ලබා ගනිමින් පවතී...</td></tr>";
+    function uploadToDrive(input) {
+        if (!input.files[0]) return;
+        const file = input.files[0];
+        const pBar = document.getElementById('progressBar');
+        const label = document.getElementById('uploadLabel');
+        document.getElementById('progressWrapper').style.display = 'block';
+        label.innerText = "Uploading...";
 
-        fetch(SCRIPT_URL)
-        .then(res => res.json())
-        .then(db => {
-            document.getElementById("entryCount").innerText = `${db.length} Entries`;
-            container.innerHTML = "";
-            
-            if(db.length === 0) {
-                container.innerHTML = "<tr><td colspan='3' style='text-align:center; padding:20px;'>තාම සටහන් කිසිවක් නැත.</td></tr>";
-                return;
-            }
-
-            db.slice().reverse().forEach((note, i) => {
-                container.innerHTML += `
-                    <tr class="note-row">
-                        <td>${note.stamp}</td>
-                        <td>${formatContent(note.content)}</td>
-                        <td class="hide-pdf">
-                            <button class="btn-delete" onclick="deleteEntry()">Remove</button>
-                        </td>
-                    </tr>`;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64 = e.target.result.split(',')[1];
+            fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ base64: base64, type: file.type, name: file.name }) })
+            .then(res => res.json())
+            .then(res => {
+                const fileTag = `[FILE]${file.name}|${res.downloadUrl}`;
+                document.getElementById('noteInput').value += (document.getElementById('noteInput').value ? "\n" : "") + fileTag;
+                label.innerText = "✅ Done!";
+                setTimeout(() => { document.getElementById('progressWrapper').style.display = 'none'; }, 2000);
             });
-        })
-        .catch(err => {
-            container.innerHTML = "<tr><td colspan='3' style='text-align:center; color:red; padding:20px;'>දත්ත Load වීමේ දෝෂයකි!</td></tr>";
-        });
+        };
+        reader.readAsDataURL(file);
     }
 
     function formatContent(text) {
-        if (!text) return "";
         return text.split('\n').map(line => {
             if (line.includes("[FILE]")) {
-                try {
-                    const parts = line.replace("[FILE]", "").split("|");
-                    const name = parts[0];
-                    const dlUrl = parts[1];
-                    const fileId = dlUrl.split("id=")[1].split("&")[0];
-                    const previewUrl = "https://drive.google.com/file/d/" + fileId + "/view";
-                    
-                    return `
-                        <div class="file-box">
-                            <span style="font-weight:700; color:#166534;">📁 ${name}</span>
-                            <div class="file-actions">
-                                <a href="${dlUrl}" target="_blank" class="btn-dl-direct">⬇️ Direct Download</a>
-                                <a href="${previewUrl}" target="_blank" style="font-size:12px; color:#6366f1; font-weight:700; text-decoration:none;">👁️ Preview</a>
-                            </div>
-                        </div>`;
-                } catch(e) { return line; }
+                const parts = line.replace("[FILE]", "").split("|");
+                return `<div class="file-box">📁 ${parts[0]} <br> <a href="${parts[1]}" target="_blank" class="btn-dl-direct">Download</a></div>`;
             }
             return line;
         }).join('<br>');
@@ -265,15 +225,9 @@
     }
 
     function exportPDF() {
-        const el = document.body;
-        el.classList.add('pdf-mode');
         const element = document.getElementById('captureRegion');
-        html2pdf().set({ margin: 10, filename: 'SmartNotes.pdf', html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
-        .from(element).save().then(() => el.classList.remove('pdf-mode'));
-    }
-
-    function deleteEntry() {
-        alert("සටහන් මැකීමට අවශ්‍ය නම් කරුණාකර ඔබගේ Google Sheet එකට ගොස් අදාළ පේළිය (Row) මකා දමන්න.");
+        document.body.classList.add('pdf-mode');
+        html2pdf().from(element).save().then(() => document.body.classList.remove('pdf-mode'));
     }
 </script>
 </body>
