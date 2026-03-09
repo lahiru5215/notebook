@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Notes Pro | Full Fixed</title>
+    <title>Smart Notes Pro | Cloud Sync Fixed</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root { 
             --surface-bg: #f8fafc; 
-            --panel-bg: rgba(255, 255, 255, 0.9); /* ෆයිල්ස් පේන්න පසුබිම පොඩ්ඩක් විනිවිද පෙනෙන සේ හැදුවා */
+            --panel-bg: rgba(255, 255, 255, 0.9);
             --brand-primary: #6366f1; 
             --brand-hover: #4f46e5; 
             --danger: #ef4444; 
@@ -24,11 +24,10 @@
         
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
-            /* *** මෙතන image.jpg වෙනුවට උඹේ ඉමේජ් එකේ නම (image.png වගේ) හරියටම දාපන් *** */
             background-image: url('image.jpg'); 
-            background-size: cover; /* ඉමේජ් එක මුළු තිරයම වැහෙන සේ */
-            background-position: center; /* මැදට වන්න */
-            background-attachment: fixed; /* scroll කරද්දී ඉමේජ් එක නොසෙල්වෙන සේ */
+            background-size: cover; 
+            background-position: center; 
+            background-attachment: fixed; 
             color: var(--text-body); 
             margin: 0; 
             padding: 40px 15px; 
@@ -42,7 +41,7 @@
             box-shadow: var(--shadow-lg); 
             overflow: hidden; 
             border: 1px solid #ffffff; 
-            backdrop-filter: blur(10px); /* පසුබිම පොඩ්ඩක් බොඳ කරනවා ලස්සනට */
+            backdrop-filter: blur(10px); 
         }
         
         .header { padding: 30px 45px; background: rgba(255, 255, 255, 0.8); border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
@@ -51,11 +50,11 @@
         .action-bar { padding: 35px 45px; background: rgba(255, 255, 255, 0.8); }
         .search-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         #searchBar { width: 100%; max-width: 350px; padding: 12px 20px; border-radius: 14px; border: 2px solid var(--border-subtle); background: #f8fafc; outline: none; transition: 0.3s; }
-        #searchBar:focus { border-color: var(--brand-primary); background: #fff; }
         
         .input-container { display: flex; gap: 15px; align-items: stretch; margin-bottom: 20px; }
         textarea { flex: 1; padding: 20px; border: 2px solid var(--border-subtle); border-radius: 20px; font-size: 16px; outline: none; background: #f8fafc; resize: none; min-height: 100px; }
         .btn-side-add { width: 160px; background: var(--brand-primary); color: white; border: none; border-radius: 20px; font-weight: 700; cursor: pointer; transition: 0.3s; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25); }
+        .btn-side-add:disabled { background: #94a3b8; }
         
         .upload-zone { background: rgba(241, 245, 249, 0.8); padding: 15px 25px; border-radius: 18px; border: 2px dashed #cbd5e1; display: flex; justify-content: space-between; align-items: center; }
         button { padding: 10px 20px; border-radius: 12px; font-weight: 700; cursor: pointer; border: none; display: flex; align-items: center; gap: 8px; }
@@ -71,13 +70,9 @@
         .note-row td:last-child { border-right: 1px solid var(--border-subtle); border-top-right-radius: 15px; border-bottom-right-radius: 15px; }
         
         .file-box { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 14px; padding: 15px; margin-top: 10px; }
-        .file-actions { display: flex; gap: 15px; margin-top: 10px; align-items: center; }
-        .btn-dl-direct { background: #10b981; color: white; padding: 8px 15px; border-radius: 8px; font-size: 12px; text-decoration: none; font-weight: 700; }
-        
         .progress-container { width: 200px; background: #e2e8f0; border-radius: 10px; height: 8px; display: none; overflow: hidden; }
         .progress-bar { height: 100%; background: var(--brand-primary); width: 0%; transition: 0.3s; }
-        .pdf-mode, .pdf-mode body { background-image: none !important; background-color: white !important; } /* PDF export කරද්දී background image එක අයින් කරනවා */
-        .pdf-mode .action-bar, .pdf-mode .hide-pdf, .pdf-mode .btn-delete { display: none !important; }
+        .pdf-mode .action-bar, .pdf-mode .hide-pdf { display: none !important; }
     </style>
 </head>
 <body>
@@ -95,53 +90,98 @@
 
         <div class="input-container">
             <textarea id="noteInput" placeholder="සටහන හෝ Link එක මෙතන ටයිප් කරන්න..."></textarea>
-            <button class="btn-side-add" onclick="saveNote()">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                Add Note
-            </button>
+            <button id="addBtn" class="btn-side-add" onclick="saveNote()">Add Note</button>
         </div>
         
         <div class="upload-zone">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <input type="file" id="filePicker" style="display:none" onchange="uploadToDrive(this)">
-                <button class="btn-attach" onclick="document.getElementById('filePicker').click()">📎 Attach File</button>
-                <div id="uploadLabel" style="font-size: 13px; font-weight: 600;">No file selected</div>
-            </div>
-            <div id="progressWrapper" class="progress-container">
-                <div id="progressBar" class="progress-bar"></div>
-            </div>
+            <input type="file" id="filePicker" style="display:none" onchange="uploadToDrive(this)">
+            <button class="btn-attach" onclick="document.getElementById('filePicker').click()">📎 Attach File</button>
+            <div id="uploadLabel" style="font-size: 13px; font-weight: 600;">No file selected</div>
+            <div id="progressWrapper" class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
         </div>
     </div>
 
     <div class="table-container">
         <table>
-            <thead>
-                <tr>
-                    <th style="width: 20%;">Date & Time</th>
-                    <th style="width: 65%;">Notes / Attachments</th>
-                    <th class="hide-pdf" style="width: 15%;">Action</th>
-                </tr>
-            </thead>
+            <thead><tr><th style="width:20%">Date</th><th style="width:65%">Notes</th><th class="hide-pdf">Action</th></tr></thead>
             <tbody id="tableBody"></tbody>
         </table>
     </div>
 </div>
 
 <script>
-    // *** උඹේ Apps Script URL එක මෙතනට දාපන් ***
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyIs3j4Tro52nmSARTL807o7i7j-2JCmLCMRXuv2g_zR8C_x0LNZkoIAskHqIlW2IGQg/exec";
+    // *** උඹේ APPS SCRIPT URL එක මෙතනට දාපන් ***
+    const SCRIPT_URL = "මhttps://script.google.com/macros/s/AKfycbwyIs3j4Tro52nmSARTL807o7i7j-2JCmLCMRXuv2g_zR8C_x0LNZkoIAskHqIlW2IGQg/exec";
 
     window.onload = refreshDisplay;
+
+    // JSONP ක්‍රමයට දත්ත ගමු (මේක අනිවාර්යයෙන් වැඩ කරනවා)
+    function refreshDisplay() {
+        const container = document.getElementById("tableBody");
+        container.innerHTML = "<tr><td colspan='3' style='text-align:center;'>Syncing...</td></tr>";
+
+        const oldScript = document.getElementById('jsonpScript');
+        if (oldScript) oldScript.remove();
+
+        const script = document.createElement('script');
+        script.id = 'jsonpScript';
+        // Apps Script එකේ doGet එකට ?callback=handleData කියලා යවනවා
+        script.src = SCRIPT_URL + "?callback=handleData&t=" + new Date().getTime();
+        document.body.appendChild(script);
+    }
+
+    // Apps Script එකෙන් දත්ත එවන්නේ මේ function එකට
+    function handleData(db) {
+        const container = document.getElementById("tableBody");
+        document.getElementById("entryCount").innerText = `${db.length} Entries`;
+        container.innerHTML = "";
+        
+        if(db.length === 0) {
+            container.innerHTML = "<tr><td colspan='3' style='text-align:center;'>No notes found.</td></tr>";
+            return;
+        }
+
+        db.slice().reverse().forEach((note) => {
+            container.innerHTML += `
+                <tr class="note-row">
+                    <td>${note.stamp}</td>
+                    <td>${formatContent(note.content)}</td>
+                    <td class="hide-pdf"><button class="btn-delete" onclick="alert('Sheet එකෙන් මකන්න.')">Remove</button></td>
+                </tr>`;
+        });
+    }
+
+    function saveNote() {
+        const input = document.getElementById("noteInput");
+        const btn = document.getElementById("addBtn");
+        if (!input.value.trim()) return;
+
+        btn.disabled = true;
+        btn.innerText = "Saving...";
+
+        const data = {
+            action: "saveNote",
+            stamp: new Date().toLocaleString('en-GB'),
+            content: input.value
+        };
+
+        // POST Request එක
+        fetch(SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors", // Redirect ප්‍රශ්න එන නිසා මේක වැදගත්
+            body: JSON.stringify(data)
+        }).then(() => {
+            input.value = "";
+            btn.disabled = false;
+            btn.innerText = "Add Note";
+            setTimeout(refreshDisplay, 2000); // පොඩි වෙලාවක් දීලා refresh කරමු
+        }).catch(err => alert("Save Error!"));
+    }
 
     function uploadToDrive(input) {
         if (!input.files[0]) return;
         const file = input.files[0];
-        const pWrapper = document.getElementById('progressWrapper');
-        const pBar = document.getElementById('progressBar');
         const label = document.getElementById('uploadLabel');
-
-        pWrapper.style.display = 'block';
-        pBar.style.width = '40%';
         label.innerText = "Uploading...";
 
         const reader = new FileReader();
@@ -153,70 +193,20 @@
             })
             .then(res => res.json())
             .then(res => {
-                if(res.status === "success") {
-                    pBar.style.width = '100%';
-                    label.innerText = "✅ Done!";
-                    const fileTag = `[FILE]${file.name}|${res.downloadUrl}`;
-                    document.getElementById('noteInput').value += (document.getElementById('noteInput').value ? "\n" : "") + fileTag;
-                } else {
-                    alert("Error: " + (res.error || "Unknown error"));
-                }
-                setTimeout(() => { pWrapper.style.display = 'none'; label.innerText = "No file selected"; }, 2000);
-            })
-            .catch(err => alert("Upload failed. Check Script URL & Permissions."));
+                const fileTag = `[FILE]${file.name}|${res.downloadUrl}`;
+                document.getElementById('noteInput').value += (document.getElementById('noteInput').value ? "\n" : "") + fileTag;
+                label.innerText = "✅ Done!";
+            });
         };
         reader.readAsDataURL(file);
     }
 
-    function saveNote() {
-        const input = document.getElementById("noteInput");
-        if (!input.value.trim()) return;
-        const db = JSON.parse(localStorage.getItem("premiumDB") || "[]");
-        db.push({ 
-            stamp: new Date().toLocaleDateString('en-GB') + "<br><small>" + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + "</small>", 
-            content: input.value 
-        });
-        localStorage.setItem("premiumDB", JSON.stringify(db));
-        input.value = "";
-        refreshDisplay();
-    }
-
-    function refreshDisplay() {
-        const container = document.getElementById("tableBody");
-        const db = JSON.parse(localStorage.getItem("premiumDB") || "[]");
-        document.getElementById("entryCount").innerText = `${db.length} Entries`;
-        container.innerHTML = "";
-        
-        db.slice().reverse().forEach((note, i) => {
-            const trueIdx = db.length - 1 - i;
-            container.innerHTML += `
-                <tr class="note-row">
-                    <td>${note.stamp}</td>
-                    <td>${formatContent(note.content)}</td>
-                    <td class="hide-pdf">
-                        <button class="btn-delete" onclick="deleteEntry(${trueIdx})">Remove</button>
-                    </td>
-                </tr>`;
-        });
-    }
-
     function formatContent(text) {
+        if(!text) return "";
         return text.split('\n').map(line => {
             if (line.includes("[FILE]")) {
                 const parts = line.replace("[FILE]", "").split("|");
-                const name = parts[0];
-                const dlUrl = parts[1];
-                const fileId = dlUrl.split("id=")[1].split("&")[0];
-                const previewUrl = "https://drive.google.com/file/d/" + fileId + "/view";
-                
-                return `
-                    <div class="file-box">
-                        <span style="font-weight:700; color:#166534;">📁 ${name}</span>
-                        <div class="file-actions">
-                            <a href="${dlUrl}" target="_blank" class="btn-dl-direct">⬇️ Direct Download</a>
-                            <a href="${previewUrl}" target="_blank" style="font-size:12px; color:#6366f1; font-weight:700; text-decoration:none;">👁️ Preview</a>
-                        </div>
-                    </div>`;
+                return `<div class="file-box">📁 ${parts[0]} <br> <a href="${parts[1]}" target="_blank">Download</a></div>`;
             }
             return line;
         }).join('<br>');
@@ -230,20 +220,9 @@
     }
 
     function exportPDF() {
-        const el = document.body;
-        el.classList.add('pdf-mode');
         const element = document.getElementById('captureRegion');
-        html2pdf().set({ margin: 10, filename: 'SmartNotes.pdf', html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
-        .from(element).save().then(() => el.classList.remove('pdf-mode'));
-    }
-
-    function deleteEntry(idx) {
-        if(confirm("මකන්නද?")) {
-            const db = JSON.parse(localStorage.getItem("premiumDB"));
-            db.splice(idx, 1);
-            localStorage.setItem("premiumDB", JSON.stringify(db));
-            refreshDisplay();
-        }
+        document.body.classList.add('pdf-mode');
+        html2pdf().from(element).save().then(() => document.body.classList.remove('pdf-mode'));
     }
 </script>
 </body>
